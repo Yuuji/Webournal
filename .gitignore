@@ -1,0 +1,5 @@
+nbproject
+application/configs/application.ini
+application/tmp/smarty_cache/*
+application/tmp/smarty_compile/*
+tmp/files/*

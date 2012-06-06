@@ -1,0 +1,111 @@
+[production]
+
+; --- Database ---
+
+resources.db.adapter = "PDO_MYSQL"
+resources.db.params.host = "localhost"
+resources.db.params.dbname = "DATABASEBANE"
+resources.db.params.username = "DATABASEUSERNAME"
+resources.db.params.password = "DATABASEPASSWORD"
+resources.db.params.charset = "utf8"
+resources.db.isDefaultTableAdapter = true
+
+; --- SPHINX / Fulltext search ---
+
+webournal.sphinx.enabled = true
+webournal.sphinx.hostname = "localhost"
+webournal.sphinx.port = 9312
+webournal.sphinx.table = "webournal_files"
+
+
+; --- Email ---
+email.sender = "noreply@my.domain.tld"
+
+; --- Salt ---
+core.crypt.salt = "SALT"
+
+; Change only domains:
+
+; --- Session ---
+phpSettings.session.cookie_domain = '.my.domain.tld'
+
+; --- Routing ---
+resources.router.routes.default.static = "my.domain.tld"
+
+
+
+
+;-------------------------------------------------------------------------------
+; DON'T CHANGE AFTER THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING
+
+core.https.enabled = true
+core.https.usemaindomain = true
+core.https.httpsonly.webournal.login = true
+core.https.httpsonly.webournal.user = true
+core.https.httpsonly.webournal.rest_login = true
+
+; Directories
+core.directories.temp.maxage = 3600 ; In seconds
+core.directories.temp.files = APPLICATION_PATH "/../tmp/files"
+core.directories.public.files = APPLICATION_PATH "/../public/files"
+core.path.public.files = "/files"
+
+; Login
+core.login.register.allow = true
+core.login.register.allowwithoutemail = true
+
+phpSettings.display_startup_errors = 0
+phpSettings.display_errors = 0
+
+bootstrap.path = APPLICATION_PATH "/Bootstrap.php"
+bootstrap.class = "Bootstrap"
+
+resources.frontController.moduleDirectory = APPLICATION_PATH "/modules"
+resources.frontController.defaultModule = "webournal"
+resources.frontController.prefixDefaultModule = true
+
+resources.layout.layout = "layout"
+resources.view[] =
+
+; --- Autoloading Prefixes ---
+
+autoloaderNamespaces.extension[] = "Core_"
+
+resources.modules =
+
+; --- Smarty ---
+
+smarty.caching = 1
+smarty.cache_lifetime = 14400 ; 4 hours
+smarty.template_dir = APPLICATION_PATH "/templates/"
+smarty.compile_dir = APPLICATION_PATH "/tmp/smarty_compile/"
+smarty.config_dir = ""
+smarty.cache_dir = APPLICATION_PATH "/tmp/smarty_cache/"
+smarty.left_delimiter = "{"
+smarty.right_delimiter = "}"
+smarty.defaultModule = "webournal"
+
+; --- Routing ---
+resources.router.routes.default.type = "Core_Route_Hostname"
+; If you need subdomain based groups change route e.g. to ":group"
+resources.router.routes.default.route = ":group"
+resources.router.routes.default.defaults.group = ""
+resources.router.routes.default.chains.index.type = "Zend_Controller_Router_Route"
+resources.router.routes.default.chains.index.route = ":module/:controller/:action/*"
+resources.router.routes.default.chains.index.defaults.controller = "index"
+resources.router.routes.default.chains.index.defaults.action = "index"
+resources.router.routes.default.chains.index.defaults.module = "webournal"
+
+
+[staging : production]
+
+[testing : production]
+phpSettings.display_startup_errors = 1
+phpSettings.display_errors = 1
+
+[development : production]
+phpSettings.display_startup_errors = 1
+phpSettings.display_errors = 1
+resources.frontController.params.displayExceptions = 1
+
+smarty.caching = 0

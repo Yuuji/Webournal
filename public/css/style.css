@@ -1,0 +1,107 @@
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+h2 {
+    border-bottom: 1px solid #AAA;
+}
+
+#logo {
+    width: 100%;
+    text-align: center;
+    font-size: 30px;
+    background-color: #EEE;
+    border-bottom: 1px solid #DDD;
+    padding: 5px;
+}
+
+#logo img {
+    margin: auto auto;
+    display: block;
+}
+
+#container {
+    width: 900px;
+    margin: 0 auto;
+}
+
+#menu {
+    border-bottom: 1px solid #DDD;
+}
+
+#submenu {
+    border: 1px dashed #DDD;
+    margin-top: 10px;
+}
+
+#menu ul li {
+    float: left;
+    list-style: none;
+    position: relative;
+}
+
+#menu ul li ul {
+    display: none;
+    position: absolute;
+}
+
+#menu ul li:hover ul {
+   display: block;
+}
+
+#menu a,
+#menu span,
+#submenu a {
+    display: inline-block;
+    color: #E69100;
+    text-decoration: none;
+    padding: 5px 15px;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+#menu a.selected,
+#menu span.selected,
+#submenu a.selected{
+    color: #333;
+}
+
+#menu a:hover,
+#menu span:hover,
+#submenu a:hover {
+    text-decoration: underline;
+    background: #EEE;
+    border: 1px solid #DDD;
+}
+
+#menu span:hover {
+    text-decoration: none !important;
+}
+
+.ui-widget-content {
+    width: 100%;
+    padding: 10px;
+}
+
+.ui-widget-content td.label {
+    width: 200px;
+}
+
+.red {
+    color: red;
+}
+
+.green {
+    color: green;
+}
+
+input.error,
+textarea.error{
+    border-color: red;
+}

@@ -1,0 +1,1 @@
+{translate name="ACCESS_DENIED"}Access denied{/translate}

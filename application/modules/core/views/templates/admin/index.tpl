@@ -1,0 +1,1 @@
+{translate name="ADMIN_INDEX"}{/translate}

@@ -711,10 +711,18 @@ class Core_Helper_Helper
                     if($group===false && isset($match['group']) && !empty($match['group']))
                     {
                         self::$_groupId = false;
+                        self::$_group = array(
+                            'name' => false,
+                            'id' => false
+                        );
                     }
                     else
                     {
                         self::$_groupId = 0;
+                        self::$_group = array(
+                            'name' => '',
+                            'id' => 0
+                        );
                     }
                 }
                 else
@@ -729,6 +737,10 @@ class Core_Helper_Helper
                     if($id===false)
                     {
                         self::$_groupId = false;
+                        self::$_group = array(
+                            'name' => '',
+                            'id' => false
+                        );
                     }
                     else
                     {
@@ -742,7 +754,10 @@ class Core_Helper_Helper
             
                 if(self::$_groupId===false)
                 {
-                    self::$_group = array();
+                    self::$_group = array(
+                        'name' => false,
+                        'id' => false
+                    );
                 }
             }
         }
@@ -954,7 +969,7 @@ class Core_Helper_Helper
      */
     public static function getTempUploadDirectory()
     {
-        $config = $this->Config()->directories;
+        $config = self::Config()->directories;
         
         if(!is_null($config) && isset($config->temp) && isset($config->temp->files))
         {
@@ -969,7 +984,7 @@ class Core_Helper_Helper
      */
     public static function getTempMaxAge()
     {
-        $config = $this->Config()->directories;
+        $config = self::Config()->directories;
         
         if(!is_null($config) && isset($config->temp) && isset($config->temp->maxage))
         {
@@ -984,7 +999,7 @@ class Core_Helper_Helper
      */
     public static function getPublicUploadDirectory()
     {
-        $config = $this->Config()->directories;
+        $config = self::Config()->directories;
         
         if(!is_null($config) && isset($config->public) && isset($config->public->files))
         {
@@ -999,7 +1014,7 @@ class Core_Helper_Helper
      */
     public static function getPublicUploadPath()
     {
-        $config = $this->Config()->path;
+        $config = self::Config()->path;
         
         if(!is_null($config) && isset($config->public) && isset($config->public->files))
         {

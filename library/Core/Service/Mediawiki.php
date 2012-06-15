@@ -1,6 +1,6 @@
 <?php
 
-class Ext_Service_Mediawiki
+class Core_Service_Mediawiki
 {
     private $_domainConfigs = array();
     private $_domain = null;

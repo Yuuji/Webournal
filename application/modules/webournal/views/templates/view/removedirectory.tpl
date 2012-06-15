@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('removedirectory', 'view', 'webournal', ['id' => $remove_id])}" method="post">
+<form action="{$Core->url('removedirectory', 'view', 'webournal', ['id' => $remove_id])}" method="post">
     <table class="login ui-widget ui-widget-content">
         {if $remove_error}
         <tr>

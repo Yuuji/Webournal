@@ -766,7 +766,7 @@ class webournal_Service_XOJ
         
         try
         {
-            $pdf = new Ext_Service_PDF($filename);
+            $pdf = new Core_Service_PDF($filename);
             $pages = $pdf->getPageCount();
             
             for($i = 1; $i <= $pages; $i++)

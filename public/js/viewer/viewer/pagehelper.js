@@ -1,7 +1,8 @@
 // this is only for netbeans ;) the navigator has a problem with getter and setter
 function extendXOJView() {
     XOJView.pageFirstSet = true;
-    XOJView.__defineSetter__('page', function(val)
+
+    XOJView.setPage = function(val)
     {
         if(!XOJView.pageFirstSet && val==this.currentPageNumber)
         {
@@ -39,10 +40,33 @@ function extendXOJView() {
         }
 
         pages[val - 1].scrollIntoView();
-    });
+    };
 
-    XOJView.__defineGetter__('page', function()
-    {
+    XOJView.getPage = function() {
         return this.currentPageNumber;
-    });
+    };
+
+    if (typeof XOJView.__defineGetter__ != 'undefined')
+    {
+        XOJView.__defineSetter__('page', function(val)
+        {
+            return $.proxy(XOJView.setPage, XOJView)(val);
+        });
+        XOJView.__defineGetter__('page', function()
+        {
+            return $.proxy(XOJView.getPage, XOJView)();
+        });
+    }
+    else
+    {
+        // IE
+        Object.defineProperty(XOJView, 'page', {
+            get: function() {
+                return $.proxy(XOJView.getPage, XOJView)();
+            },
+            set: function(val) {
+                return $.proxy(XOJView.setPage, XOJView)(val);
+            }
+        });
+    }
 }

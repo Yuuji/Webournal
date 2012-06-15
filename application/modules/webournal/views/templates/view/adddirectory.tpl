@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('adddirectory', 'view', 'webournal', $addParams)}" method="post">
+<form action="{$Core->url('adddirectory', 'view', 'webournal', $addParams)}" method="post">
     <table class="login ui-widget ui-widget-content">
         {if $add_error_name_empty}
         <tr>

@@ -155,6 +155,7 @@ function updateViewarea()
     var visiblePages = XOJView.getVisiblePages();
     
     loadedPages = [];
+    var minPage = -1;
     for (var i = 0; i < visiblePages.length; i++)
     {
         var page = visiblePages[i];
@@ -163,7 +164,10 @@ function updateViewarea()
             //cache.push(page.view);
         }
         loadedPages.push(page.id);
-        
+        if(minPage===-1 || page.id<minPage)
+        {
+            minPage=page.id;
+        }
         var idx = oldLoadedPages.indexOf(page.id);
         delete page;
         if(idx!=-1)
@@ -172,6 +176,17 @@ function updateViewarea()
         }
         delete idx;
     }
+
+    if(minPage>1)
+    {
+        var idx = oldLoadedPages.indexOf(minPage-1);
+        if(idx!=-1)
+        {
+            oldLoadedPages.splice(idx,1);
+        }
+        delete idx;
+    }
+    delete minPage;
     
     for(id in oldLoadedPages)
     {

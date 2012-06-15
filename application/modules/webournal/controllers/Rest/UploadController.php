@@ -1,5 +1,5 @@
 <?php
-class Rest_UploadController extends Ext_REST_Controller
+class webournal_Rest_UploadController extends Core_REST_Controller
 {
     public function postAction()
     {

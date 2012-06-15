@@ -28,6 +28,18 @@ var PageView = function pageView(container, content, id, pageWidth, pageHeight,
 
     container.appendChild(anchor);
     container.appendChild(div);
+
+    this.loadCanvas = function loadCanvas(canvas)
+    {
+        if(canvas.attr('xojview_loaded')!=='loaded')
+        {
+            canvas.addClass('editlayer');
+            canvas.mousedown($.proxy(XOJView.editMouseDown, XOJView));
+            canvas.mousemove($.proxy(XOJView.editMouseMove, XOJView));
+            canvas.mouseup($.proxy(XOJView.editMouseUp, XOJView));
+            canvas.attr('xojview_loaded', 'loaded');
+        }
+    }
   
     this.getEditLayer = function getEditLayer(name)
     {
@@ -40,6 +52,8 @@ var PageView = function pageView(container, content, id, pageWidth, pageHeight,
                 {
                     if(this.layer[key].layerKey==xojEditLayer)
                     {
+                        var canvas = $('canvas#' + this.layer[key].id);
+                        this.loadCanvas(canvas);
                         return key;
                     }
                 }
@@ -66,12 +80,11 @@ var PageView = function pageView(container, content, id, pageWidth, pageHeight,
 
             this.addLayer(key, this.div, this.width, this.height, this.scale);
 
-            $('canvas#' + this.layer[key].id).addClass('editlayer');
-            $('canvas#' + this.layer[key].id).mousedown($.proxy(XOJView.editMouseDown, XOJView));
-            $('canvas#' + this.layer[key].id).mousemove($.proxy(XOJView.editMouseMove, XOJView));
-            $('canvas#' + this.layer[key].id).mouseup($.proxy(XOJView.editMouseUp, XOJView));
             this.editLayer = key;
         }
+
+        var canvas = $('canvas#' + this.layer[this.editLayer].id);
+        this.loadCanvas(canvas);
 
         return this.editLayer;
     }

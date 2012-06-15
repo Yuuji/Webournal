@@ -468,7 +468,7 @@ class webournal_ViewController extends Zend_Controller_Action
         
         $add = $this->_request->getParam('add', false);
         
-        $pdf = new Ext_Service_PDF($file['tmpname']);
+        $pdf = new Core_Service_PDF($file['tmpname']);
         
         $name = $file['data']['name'];
         $number = '';

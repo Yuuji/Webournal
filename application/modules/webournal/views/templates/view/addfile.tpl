@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('addfile', 'view', 'webournal', ['id' => $add_id])}" method="post" enctype="multipart/form-data">
+<form action="{$Core->url('addfile', 'view', 'webournal', ['id' => $add_id])}" method="post" enctype="multipart/form-data">
     <table class="login ui-widget ui-widget-content">
         {if $add_error_upload}
         <tr>

@@ -1,6 +1,6 @@
 <?php
 
-class Ext_Service_Etherpad
+class Core_Service_Etherpad
 {
     private $_connected = false;
     private $_scheme = 'http';
@@ -524,7 +524,7 @@ class Ext_Service_Etherpad
         ));
         $contentStr = nl2br($contentStr);
         
-        $contentStr = Ext_Helper_Parser::parseLinks($contentStr, "<a href=\"\$1\" target=\"_blank\">", "</a>");
+        $contentStr = Core_Helper_Parser::parseLinks($contentStr, "<a href=\"\$1\" target=\"_blank\">", "</a>");
             
         return $contentStr;
     }

@@ -2,9 +2,21 @@
 /**
  * Index-Controller
  */
-class webournal_SearchController extends Zend_Controller_Action
+class webournal_SearchController extends Core_View_PaginatorController
 {
-    const VERSION = 1;
+    const VERSION = 2;
+
+    /**
+     *
+     * @var webournal_Service_Search
+     */
+    private $_search = null;
+
+    public function init()
+    {
+        parent::init();
+        $this->_search = new webournal_Service_Search();
+    }
 
     public function indexAction()
     {
@@ -61,29 +73,10 @@ class webournal_SearchController extends Zend_Controller_Action
             return $this->_redirect(array('action' => 'index'));
         }
 
-        $files = Core()->Db()->fetchAll('
-            SELECT
-                *
-            FROM
-                `webournal_search` ws
-            WHERE
-                `query` = ? AND
-                `groupid` = ?
-        ', array(
-            $this->escapeSphinxQL($search),
-            Core()->getGroupId()
-        ));
-
-        $this->view->search_files = $files;
+        $this->view->search_search = $search;
+        $this->view->search_files = $this->Pagination(array($this->_search, 'getFiles'), $search);
     }
 
-    private function escapeSphinxQL($string)
-    {
-        $from = array ( '\\', '(',')','|','-','!','@','~','"','&', '/', '^', '$', '=', "'", "\x00", "\n", "\r", "\x1a" );
-        $to   = array ( '\\\\', '\\\(','\\\)','\\\|','\\\-','\\\!','\\\@','\\\~','\\\"', '\\\&', '\\\/', '\\\^', '\\\$', '\\\=', "\\'", "\\x00", "\\n", "\\r", "\\x1a" );
-        return str_replace ( $from, $to, $string );
-    }
-    
     public static function updater($version)
     {
         if($version<self::VERSION)
@@ -99,6 +92,22 @@ class webournal_SearchController extends Zend_Controller_Action
         }
 
         return self::VERSION;
+    }
+
+    private static function update2()
+    {
+        $config = Core()->Config()->sphinx;
+
+        if($config && $config->enabled)
+        {
+            $entry = Core()->Menu()->findBy('label', 'SEARCH');
+            if(is_null($entry))
+            {
+                Core()->Menu()->addControllerEntry('SEARCH', 'Search', 'index', 'search', 'webournal');
+            }
+        }
+
+        return true;
     }
 
     private static function update1()

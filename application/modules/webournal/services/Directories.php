@@ -20,6 +20,7 @@ class webournal_Service_Directories
                 WHERE
                     d.`group_id` = ? AND
                     d.`parent` IS NULL
+                ORDER BY d.`directory_time` DESC, d.`name`
             ', array(
                 $groupid
             ));
@@ -34,6 +35,7 @@ class webournal_Service_Directories
                 WHERE
                     d.`group_id` = ? AND
                     d.`parent` = ?
+                ORDER BY d.`directory_time` DESC, d.`name`
             ', array(
                 $groupid,
                 $parent
@@ -296,7 +298,7 @@ class webournal_Service_Directories
             );
 
             Core()->Events()->addSubscription(
-                'webournal_Service_Groups_removeGroup',
+                'core_Service_Groups_removeGroup',
                 'webournal_Service_Directories',
                 'removeGroupEvent'
             );

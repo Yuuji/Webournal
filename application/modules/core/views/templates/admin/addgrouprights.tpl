@@ -1,5 +1,5 @@
 <h2>Admin-Zugriffsrechte der Gruppe {$group.name} ({$group.url}.{$maindomain})</h2>
-<form action="{$Core->url('addgrouprights', 'admin', 'webournal', ['id' => $group.id])}" method="post">
+<form action="{$Core->url('addgrouprights', 'admin', 'core', ['id' => $group.id])}" method="post">
     <table class="login ui-widget ui-widget-content">
         {if $error_empty}
         <tr>

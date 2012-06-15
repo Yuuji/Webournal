@@ -1,15 +1,22 @@
 <?php
-class Rest_DirectoryController extends Ext_REST_Controller
+class webournal_Rest_DirectoryController extends Core_REST_Controller
 {
     /**
      *
      * @var webournal_Service_Directories 
      */
     private $_directories = null;
+    
+    /**
+     *
+     * @var webournal_Service_Files
+     */
+    private $_files = null;
 
     public function init()
     {
         $this->_directories = new webournal_Service_Directories();
+        $this->_files = new webournal_Service_Files($this->_directories);
     }
     
     public function indexAction()
@@ -39,7 +46,8 @@ class Rest_DirectoryController extends Ext_REST_Controller
 
             $data = array(
                 'directory' => $directory,
-                'subdirectories' => $this->_directories->getDirectories($id)
+                'subdirectories' => $this->_directories->getDirectories($id),
+                'files' => $this->_files->getFiles($id)
             );
         }
         catch(Exception $e)

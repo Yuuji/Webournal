@@ -10,7 +10,7 @@
     </tr>
     {foreach $directories as $cdirectory}
         <tr>
-            <td><a href="{$Webournal->url('index', 'view', 'webournal', ['id' => $cdirectory.id])}">{$cdirectory.name|escape:"htmlall"}</a></td>
+            <td><a href="{$Core->url('index', 'view', 'webournal', ['id' => $cdirectory.id])}">{$cdirectory.name|escape:"htmlall"}</a></td>
             <td>{if $cdirectory.type=="date"}Termin{else}Ordner{/if}</td>
             <td>{if $cdirectory.type=="date"}{$cdirectory.directory_time|date_format}{else}&nbsp;{/if}</td>
             <td>{$cdirectory.description|escape:"htmlall"}</td>
@@ -23,7 +23,7 @@
     {/foreach}
 </table>
 {/if}
-{if !is_null($directory_id)}
+{if !is_null($directory_id) && (count($files)>0 || count($directories)===0)}
 <h2>Dateien</h2>
 <table>
     {foreach $files as $file}

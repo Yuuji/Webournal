@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('addfilesettings', 'view', 'webournal', ['directory' => $add_directoryId, 'file' => $add_fileId])}" method="post">
+<form action="{$Core->url('addfilesettings', 'view', 'webournal', ['directory' => $add_directoryId, 'file' => $add_fileId])}" method="post">
     <input type="hidden" name="ignore" value="{$add_ignore|escape:"htmlall"}" />
     <table class="login ui-widget ui-widget-content">
         {if $add_error_name}
@@ -12,7 +12,7 @@
         {/if}
         <tr>
             <td><label for="name">Name *:</label></td>
-            <td><input type="text" name="name" id="name" value="{$add_name|escape:"htmlall"}" /></td>
+            <td><input type="texts" name="name" id="name" value="{$add_name|escape:"htmlall"}" /></td>
         </tr>
         <tr>
             <td><label for="number">Dokumentennummer:<br />Optional, hilfreich z.B. bei Aktenzeichen</label></td>

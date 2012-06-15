@@ -209,7 +209,7 @@ class webournal_Service_Files
         
         try
         {
-            $pdf = new Ext_Service_PDF($filename);
+            $pdf = new Core_Service_PDF($filename);
         }
         catch(Exception $e)
         {
@@ -226,7 +226,7 @@ class webournal_Service_Files
 
                     unlink($filename. '.ps');
 
-                    $pdf = new Ext_Service_PDF($filename);
+                    $pdf = new Core_Service_PDF($filename);
                 }
                 catch(Exception $e)
                 {

@@ -1,5 +1,5 @@
 <?php
-class Rest_LoginController extends Ext_REST_Controller
+class webournal_Rest_LoginController extends Core_REST_Controller
 {
     const VERSION = 1;
     

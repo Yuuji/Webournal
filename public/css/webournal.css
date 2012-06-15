@@ -1,0 +1,22 @@
+#content table.file {
+    width: 100%;
+    /* border-bottom: 1px dashed #BBB; */
+    margin-bottom: 30px;
+}
+
+#content table.file th.filename {
+    background-color: #DDD;
+}
+
+#content table.file td.col1 {
+    border-right: 1px dashed #BBB;
+}
+
+#content table.file td.col2 {
+    width: 300px;
+    padding-left: 20px;
+}
+
+#content table.file table.description td.label {
+    font-weight: bold;
+}

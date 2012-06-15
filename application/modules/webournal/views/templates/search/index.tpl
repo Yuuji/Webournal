@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('index', 'search', 'webournal')}" method="post">
+<form action="{$Core->url('index', 'search', 'webournal')}" method="post">
     <table class="ui-widget ui-widget-content">
         {if $error_noinput}
         <tr>

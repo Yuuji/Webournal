@@ -1,5 +1,5 @@
 <?php
-class Rest_FileController extends Ext_REST_Controller
+class webournal_Rest_FileController extends Core_REST_Controller
 {
     /**
      *
@@ -127,6 +127,7 @@ class Rest_FileController extends Ext_REST_Controller
                     $duplicatedFiles[] = array(
                         'id' => $file['id'],
                         'name' => $file['name'],
+                        'number' => $file['number'],
                         'description' => $file['description'],
                         'created' => $file['created'],
                         'updated' => $file['updated'],

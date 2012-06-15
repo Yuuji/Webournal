@@ -1,4 +1,4 @@
-<form action="{$Webournal->url('editdirectory', 'view', 'webournal', ['id' => $edit_id])}" method="post">
+<form action="{$Core->url('editdirectory', 'view', 'webournal', ['id' => $edit_id])}" method="post">
     <table class="login ui-widget ui-widget-content">
         {if $edit_error_name_empty}
         <tr>

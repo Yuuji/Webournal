@@ -1,7 +1,7 @@
 <?php
 class webournal_Service_XOJ
 {
-    const VERSION = 1;
+    const VERSION = 2;
     
     /**
      *
@@ -30,12 +30,31 @@ class webournal_Service_XOJ
     
     public static function getXOJObject($fileId, $userId = false, $groupId=null)
     {
+        return self::getXOJObjectIntern($fileId, 'file', $userId, $groupId);
+    }
+
+    public static function getAttachmentXOJObject($fileId, $userId = false, $groupId=null)
+    {
+        return self::getXOJObjectIntern($fileId, 'attachment', $userId, $groupId);
+    }
+
+    private static function getXOJObjectIntern($fileId, $type='file', $userId = false, $groupId=null)
+    {
         if(is_null($groupId))
         {
             $groupId = Core()->getGroupId();
         }
-        
-        $file = self::Files()->getFileById($fileId, $groupId);
+
+        switch($type)
+        {
+            case 'attachment':
+                $file = self::Files()->getFileAttachmentById($fileId, $groupId);
+                break;
+            case 'file':
+            default:
+                $file = self::Files()->getFileById($fileId, $groupId);
+                break;
+        }
         
         if($file===false)
         {
@@ -70,7 +89,16 @@ class webournal_Service_XOJ
                 
                 if(!is_null($background['fileid']))
                 {
-                    $file = self::Files()->getFileById($background['fileid'], $groupId);
+                    switch($type)
+                    {
+                        case 'attachment':
+                            $file = self::Files()->getFileAttachmentById($background['fileid'], $groupId);
+                            break;
+                        case 'file':
+                        default:
+                            $file = self::Files()->getFileById($background['fileid'], $groupId);
+                            break;
+                    }
                     $backgroundObj->filename = $file['url'];
                     $backgroundObj->domain='absolute';
                 }
@@ -624,6 +652,16 @@ class webournal_Service_XOJ
     
     public static function setLayers($fileId, $data, $userId=null, $groupId=null)
     {
+        return self::setLayersIntern($fileId, $data, 'file', $userId, $groupId);
+    }
+
+    public static function setAttachmentLayers($fileId, $data, $userId=null, $groupId=null)
+    {
+        return self::setLayersIntern($fileId, $data, 'attachment', $userId, $groupId);
+    }
+
+    private static function setLayersIntern($fileId, $data, $type='file', $userId=null, $groupId=null)
+    {
         if(is_null($groupId))
         {
             $groupId = Core()->getGroupId();
@@ -633,8 +671,17 @@ class webournal_Service_XOJ
         {
             $userId = Core()->getUserId();
         }
-        
-        $file = self::Files()->getFileById($fileId, $groupId);
+
+        switch($type)
+        {
+            case 'attachment':
+                $file = self::Files()->getFileAttachmentById($fileId, $groupId);
+                break;
+            case 'file':
+            default:
+                $file = self::Files()->getFileById($fileId, $groupId);
+                break;
+        }
         
         if($file===false)
         {
@@ -749,16 +796,35 @@ class webournal_Service_XOJ
             
         }
     }
+
+    public static function newFileAttachmentEvent($fileId, $attachedToFileId, $filename, $groupId)
+    {
+        return self::newFileEventIntern($fileId, $filename, $groupId, 'attachment');
+    }
     
     public static function newFileEvent($fileId, $filename, $groupId)
+    {
+        return self::newFileEventIntern($fileId, $filename, $groupId, 'file');
+    }
+
+    private static function newFileEventIntern($fileId, $filename, $groupId, $type='file')
     {
         if(is_null($groupId))
         {
             $groupId = Core()->getGroupId();
         }
-        
-        $file = self::Files()->getFileById($fileId, $groupId);
-        
+
+        switch($type)
+        {
+            case 'attachment':
+                $file = self::Files()->getFileAttachmentById($fileId, $groupId);
+                break;
+            case 'file':
+            default:
+                $file = self::Files()->getFileById($fileId, $groupId);
+                break;
+        }
+
         if($file===false)
         {
             throw new Exception('Access denied', 99);
@@ -856,6 +922,24 @@ class webournal_Service_XOJ
         }
 
         return self::VERSION;
+    }
+
+    private static function update2()
+    {
+        try
+        {
+            Core()->Events()->addSubscription(
+                    'webournal_Service_Files_newAttachment',
+                    'webournal_Service_XOJ',
+                    'newFileAttachmentEvent'
+            );
+        }
+        catch(Exception $e)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static function update1()

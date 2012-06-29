@@ -1,7 +1,7 @@
 <?php
 class webournal_Service_Files
 {
-    const VERSION = 2;
+    const VERSION = 3;
     
     private static $_hashes = array();
     /**
@@ -117,6 +117,45 @@ class webournal_Service_Files
         $file = self::prepareFilesArray(array($file));
         return $file[0];
     }
+
+    public static function getFileByIdAndDirectory($id, $directoryId, $groupId=null)
+    {
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+
+        $file = Core()->Db()->fetchRow('
+            SELECT
+                wf.*, wd.`group_id`
+            FROM
+                `webournal_files` wf
+            INNER JOIN
+                `webournal_files_directory` wfd
+            ON
+                wfd.`file_id` = wf.`id`
+            INNER JOIN
+                `webournal_directory` wd
+            ON
+                wd.`id` = wfd.`directory_id`
+            WHERE
+                wf.`id` = ? AND
+                wd.`group_id` = ? AND
+                wd.`id` = ?
+        ', array(
+            $id,
+            $groupId,
+            $directoryId
+        ));
+
+        if($file===false)
+        {
+            return false;
+        }
+
+        $file = self::prepareFilesArray(array($file));
+        return $file[0];
+    }
     
     public static function getFiles($directoryId, $groupId=null)
     {
@@ -177,14 +216,136 @@ class webournal_Service_Files
             $groupId
         ));
     }
+
+    public static function getFileAttachmentFiles($fileId, $groupId=null)
+    {
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+
+        return Core()->Db()->fetchCol('
+                SELECT
+                    wf2.id
+                FROM
+                    `webournal_files` wf
+                INNER JOIN
+                    `webournal_files_attachments` wfa
+                ON
+                    wfa.`file_id` = wf.`id`
+                INNER JOIN
+                    `webournal_files` wf2
+                ON
+                    wf2.`id` = wfa.`attached_to_file_id`
+                INNER JOIN
+                    `webournal_files_directory` wfd
+                ON
+                    wfd.`file_id` = wf2.`id`
+                INNER JOIN
+                    `webournal_directory` wd
+                ON
+                    wd.`id` = wfd.`directory_id`
+                WHERE
+                    wf.`id` = ? AND
+                    wd.`group_id` = ?
+        ', array(
+            $fileId,
+            $groupId
+        ));
+    }
+
+    public static function getFileAttachmentById($fileId, $groupId=null)
+    {
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+
+        $files = Core()->Db()->fetchRow('
+            SELECT
+                wf.*, wd.`group_id`
+            FROM
+                `webournal_files` wf
+            INNER JOIN
+                `webournal_files_attachments` wfa
+            ON
+                wfa.`file_id` = wf.`id`
+            INNER JOIN
+                `webournal_files` wf2
+            ON
+                wf2.`id` = wfa.`attached_to_file_id`
+            INNER JOIN
+                `webournal_files_directory` wfd
+            ON
+                wfd.`file_id` = wf2.`id`
+            INNER JOIN
+                `webournal_directory` wd
+            ON
+                wd.`id` = wfd.`directory_id`
+            WHERE
+                wf.`id` = ? AND
+                wd.`group_id` = ?
+        ', array(
+            $fileId,
+            $groupId
+        ));
+        
+        $files = self::prepareFilesArray(array($files), false);
+
+        return $files[0];
+    }
+
+    public static function getFileAttachments($attachedToFileId, $groupId=null)
+    {
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+
+        $files = Core()->Db()->fetchAll('
+            SELECT
+                wf.*, wd.`group_id`
+            FROM
+                `webournal_files` wf
+            INNER JOIN
+                `webournal_files_attachments` wfa
+            ON
+                wfa.`file_id` = wf.`id`
+            INNER JOIN
+                `webournal_files` wf2
+            ON
+                wf2.`id` = wfa.`attached_to_file_id`
+            INNER JOIN
+                `webournal_files_directory` wfd
+            ON
+                wfd.`file_id` = wf2.`id`
+            INNER JOIN
+                `webournal_directory` wd
+            ON
+                wd.`id` = wfd.`directory_id`
+            WHERE
+                wfa.`attached_to_file_id` = ? AND
+                wd.`group_id` = ?
+        ', array(
+            $attachedToFileId,
+            $groupId
+        ));
+
+        return self::prepareFilesArray($files, false);
+    }
     
-    private static function prepareFilesArray($files)
+    private static function prepareFilesArray($files, $loadAttachments=true)
     {
         reset($files);
         foreach($files as $key => $file)
         {
             $files[$key]['filename'] = realpath(Core()->getPublicUploadDirectory() . '/' . $file['group_id'] . '_' . $file['id'] . '_' . $file['hash'] . '.pdf');
             $files[$key]['url'] = Core()->getPublicUploadPath() . '/' . $file['group_id'] . '_' . $file['id'] . '_' . $file['hash'] . '.pdf';
+            
+            if($loadAttachments)
+            {
+                $files[$key]['attachments'] = self::getFileAttachments($file['id'], $file['group_id']);
+            }
         }
         
         reset($files);
@@ -256,7 +417,12 @@ class webournal_Service_Files
         return true;
     }
     
-    public static function addFile($filename, $directory, $name, $number='', $description='', $ignoreHash = false, $groupId = null)
+    public static function addFileAttachment($filename, $attachToFile, $name, $number='', $description='', $ignoreHash = false, $groupId = null)
+    {
+        self::addFile($filename, $attachToFile, $name, $number, $description, $ignoreHash, $groupId, 'attachment');
+    }
+    
+    public static function addFile($filename, $directory, $name, $number='', $description='', $ignoreHash = false, $groupId = null, $addType = 'file')
     {
         Core()->Db()->beginTransaction();
         if(is_null($groupId))
@@ -313,7 +479,17 @@ class webournal_Service_Files
         
         try
         {
-            self::addFileToDirectoryIntern($id, $directory);
+            switch($addType)
+            {
+                case 'attachment':
+                    // $directory is attachToFileId
+                    self::addFileToAttachmentIntern($id, $directory);
+                    break;
+                case 'file':
+                default:
+                    self::addFileToDirectoryIntern($id, $directory);
+                    break;
+            }
         }
         catch(Exception $e)
         {
@@ -322,7 +498,17 @@ class webournal_Service_Files
             throw new Exception('File could not add', 12);
         }
         
-        $check = Core()->Events()->trigger('webournal_Service_Files_newFile',array($id, $newfilename, $groupId));
+        switch($addType)
+        {
+            case 'attachment':
+                // $directory is attachToFileId
+                $check = Core()->Events()->trigger('webournal_Service_Files_newAttachment',array($id, $directory, $newfilename, $groupId));
+                break;
+            case 'file':
+            default:
+                $check = Core()->Events()->trigger('webournal_Service_Files_newFile',array($id, $newfilename, $groupId));
+                break;
+        }
         
         if($check===false)
         {
@@ -372,10 +558,23 @@ class webournal_Service_Files
             $directoryId
         ));
     }
+    
+    private static function addFileToAttachmentIntern($fileId, $attachToFile)
+    {
+        Core()->Db()->query('
+            REPLACE INTO
+                `webournal_files_attachments`
+            SET
+                `file_id` = ?,
+                `attached_to_file_id` = ?
+        ', array(
+            $fileId,
+            $attachToFile
+        ));
+    }
 
     public static function editFile($fileId, $name, $number='', $description='', $groupId = null)
     {
-        Core()->Db()->beginTransaction();
         if(is_null($groupId))
         {
             $groupId = Core()->getGroupId();
@@ -388,6 +587,30 @@ class webournal_Service_Files
             throw new Exception('Access denied', 99);
         }
 
+        return self::editFileIntern($fileId, $name, $number, $description);
+    }
+
+    public static function editFileAttachment($fileId, $name, $number='', $description='', $group_id=null)
+    {
+        if(is_null($group_id))
+        {
+            $group_id = Core()->getGroupId();
+        }
+
+        $file = self::getFileAttachmentById($fileId, $group_id);
+
+        if($file===false)
+        {
+            throw new Exception('Access denied', 99);
+        }
+
+        return self::editFileIntern($fileId, $name, $number, $description);
+    }
+
+    private static function editFileIntern($fileId, $name, $number='', $description='')
+    {
+        Core()->Db()->beginTransaction();
+        
         if(empty($name))
         {
             throw new Exception('Name not set', 11);
@@ -532,8 +755,12 @@ class webournal_Service_Files
         try
         {
             $dirs = self::getFileDirectories($fileId, $groupId);
+            $files = self::getFileAttachmentFiles($fileId, $groupId);
             
-            if(!is_array($dirs) || count($dirs)==0)
+            if(
+                    (!is_array($dirs) || count($dirs)==0) &&
+                    (!is_array($files) || count($files)==0)
+                )
             {
                 self::removeFile($fileId, $groupId);
             }
@@ -545,6 +772,71 @@ class webournal_Service_Files
             
         }
         return false;
+    }
+
+    public static function removeFileAttachment($fileId, $attachedToFileId, $groupId = null)
+    {
+        $doTransaction = true;
+        try
+        {
+            Core()->Db()->beginTransaction();
+        }
+        catch(Exception $e)
+        {
+            $doTransaction = false;
+        }
+
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+
+        $file = self::getFileAttachmentById($fileId, $groupId);
+        $attachedToFile = self::getFileById($attachedToFileId, $groupId);
+
+        if($file===false)
+        {
+            throw new Exception('Access denied', 99);
+        }
+
+        if($attachedToFile===false)
+        {
+            throw new Exception('Access denied', 99);
+        }
+
+        Core()->Db()->query('
+            DELETE FROM
+                `webournal_files_attachments`
+            WHERE
+                `file_id` = ? AND
+                `attached_to_file_id` = ?
+        ', array(
+            $fileId,
+            $attachedToFileId
+        ));
+
+        $check = Core()->Events()->trigger('webournal_Service_Files_removeAttachmentFromFile', array($fileId, $attachedToFileId, $groupId));
+
+        if($check!==false)
+        {
+            if($doTransaction)
+            {
+                Core()->Db()->commit();
+            }
+        }
+        else
+        {
+            if($doTransaction)
+            {
+                Core()->Db()->rollBack();
+            }
+            throw new Exception('Could not remove attachment', 51);
+        }
+    }
+
+    public static function removeAttachmentFromFileEvent($fileId, $attachedToFileId, $groupId)
+    {
+        return self::removeFileFromDirectoryEvent($fileId, null, $groupId);
     }
     
     public static function updater($version)
@@ -562,6 +854,26 @@ class webournal_Service_Files
         }
 
         return self::VERSION;
+    }
+
+    private static function update3()
+    {
+        Core()->Db()->query('
+            CREATE TABLE IF NOT EXISTS `webournal_files_attachments` (
+              `file_id` int(11) NOT NULL,
+              `attached_to_file_id` int(11) NOT NULL,
+              PRIMARY KEY  (`file_id`,`attached_to_file_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ');
+        
+        Core()->Events()->addListener('webournal_Service_Files_newAttachment');
+        Core()->Events()->addListener('webournal_Service_Files_removeAttachmentFromFile');
+
+        Core()->Events()->addSubscription(
+            'webournal_Service_Files_removeAttachmentFromFile',
+            'webournal_Service_Files',
+            'removeAttachmentFromFileEvent'
+        );
     }
     
     private static function update2()

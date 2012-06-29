@@ -1,4 +1,4 @@
-<form action="{$Core->url('addfilesettings', 'view', 'webournal', ['directory' => $add_directoryId, 'file' => $add_fileId])}" method="post">
+<form action="{$Core->url(null, 'view', 'webournal', $add_params)}" method="post">
     <input type="hidden" name="ignore" value="{$add_ignore|escape:"htmlall"}" />
     <table class="login ui-widget ui-widget-content">
         {if $add_error_name}

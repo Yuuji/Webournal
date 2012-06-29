@@ -4,7 +4,7 @@
  */
 class webournal_ViewController extends Zend_Controller_Action
 {
-    const VERSION = 1;
+    const VERSION = 2;
 
     /**
      *
@@ -32,6 +32,23 @@ class webournal_ViewController extends Zend_Controller_Action
     }
 
     public function postDispatch()
+    {
+        switch($this->_request->getActionName())
+        {
+            case 'addattachment':
+            case 'addattachmentsettings':
+            case 'addattachmentduplicated':
+            case 'viewattachments':
+            case 'editattachment':
+            case 'removeattachment':
+                return $this->postDispatchAttachments();
+                break;
+            default:
+                return $this->postDispatchDirectory();
+        }
+    }
+    
+    private function postDispatchDirectory()
     {
         $submenu = array();
         $directoryId = $this->_request->getParam('id', null);
@@ -118,6 +135,90 @@ class webournal_ViewController extends Zend_Controller_Action
                 'params'        => array(
                     'id'        => $directoryId
                 )
+            );
+        }
+        
+        $this->view->submenu = $submenu;
+    }
+    
+    private function postDispatchAttachments()
+    {
+        $submenu = array();
+        $attachmentFileId = $this->_request->getParam('attachment', null);
+        $attachedToFileId = $this->_request->getParam('id', null);
+        
+        $directoryId = $this->_request->getParam('directory', null);
+
+        $params = array();
+
+        $attachedToFile = false;
+        if(!is_null($attachedToFileId))
+        {
+            $params['id']   = $attachedToFileId;
+            $attachedToFile = $this->_files->getFileById($attachedToFileId);
+        }
+
+        $attachmentFile = false;
+        if(!is_null($attachmentFileId))
+        {
+            $attachmentFile = $this->_files->getFileAttachmentById($attachmentFileId);
+        }
+
+        $directory = false;
+        if(!is_null($directoryId))
+        {
+            $params['directory'] = $directoryId;
+            
+            $directory = $this->_directories->getDirectoryById($directoryId);
+        }
+        
+        $submenu = array();
+
+        if($attachmentFile!==false && $attachedToFile!==false)
+        {
+            $submenu[] =  array(
+                'module'        => 'webournal',
+                'name'          => '&lt;-- Zur&uuml;ck',
+                'controller'    => 'view',
+                'action'        => 'viewattachments',
+                'params'        => array(
+                    'directory'     => $directoryId,
+                    'id'            => $attachedToFileId
+                ),
+                'neverselected' => true
+            );
+        }
+        else if($directory!==false)
+        {
+            $submenu[] =  array(
+                'module'        => 'webournal',
+                'name'          => '&lt;-- Zur&uuml;ck',
+                'controller'    => 'view',
+                'action'        => 'index',
+                'params'        => array(
+                    'id'        => $directoryId
+                ),
+                'neverselected' => true
+            );
+        }
+
+        if($attachedToFile!==false)
+        {
+            $params = array(
+                'id'        => $attachedToFileId,
+            );
+            
+            if($directory!==false)
+            {
+                $params['directory'] = $directoryId;
+            }
+            
+            $submenu[] = array(
+                'module'        => 'webournal',
+                'name'          => 'Anhang hinzuf&uuml;gen',
+                'controller'    => 'view',
+                'action'        => 'addattachment',
+                'params'        => $params
             );
         }
         
@@ -359,14 +460,59 @@ class webournal_ViewController extends Zend_Controller_Action
 
     public function addfileAction()
     {
-        $directoryId = $this->_request->getParam('id', null);
-
-        $directory = $this->_directories->getDirectoryById($directoryId);
-
-        if($directory===false)
+        $addType = $this->_request->getParam('addType', 'directory');
+        switch($addType)
         {
-            return Core()->redirect('index', 'view', 'webournal');
+            case 'attachment':
+                $this->_request->setActionName('addattachment');
+                
+                $fileId = $this->_request->getParam('id', null);
+
+                $file = $this->_files->getFileById($fileId);
+
+                if($file===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+                
+                $directoryId = $this->_request->getParam('directory', null);
+
+                $directory = $this->_directories->getDirectoryById($directoryId);
+
+                if($directory===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+                
+                $params = array(
+                    'id' => $fileId,
+                    'directory' => $directoryId
+                );
+                $paramsForward = $params;
+                
+                break;
+            case 'directory':
+            default:
+                $addType = 'directory';
+                $directoryId = $this->_request->getParam('id', null);
+
+                $directory = $this->_directories->getDirectoryById($directoryId);
+
+                if($directory===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+                
+                $params = array(
+                    'id' => $directoryId
+                );
+                $paramsForward = array(
+                    'directory' => $directoryId
+                );
+                
+                break;
         }
+        
         
         $error_upload = false;
         $error_file_missing = false;
@@ -392,16 +538,40 @@ class webournal_ViewController extends Zend_Controller_Action
                 {
                     return Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
                 }
-                
+
+                /**
+                 * @todo Duplicated detection does not work if the file has to be converted
+                 */
                 $check = $this->_files->checkFile($file['tmpname']);
                 
                 if($check===true)
                 {
-                    Core()->redirect('addfilesettings', 'view', 'webournal', array('directory' => $directoryId, 'file' => $id));
+                    switch($addType)
+                    {
+                        case 'attachment':
+                            $action = 'addattachmentsettings';
+                            break;
+                        case 'directory':
+                            $action = 'addfilesettings';
+                        default:
+                            break;
+                    }
+                    return Core()->redirect($action, 'view', 'webournal', array_merge($paramsForward, array('file' => $id)));
                 }
                 else
                 {
-                    Core()->redirect('addfileduplicated', 'view', 'webournal', array('directory' => $directoryId, 'file' => $id));
+                    switch($addType)
+                    {
+                        case 'attachment':
+                            $action = 'addattachmentduplicated';
+                            break;
+                        case 'directory':
+                        default:
+                            $action = 'addfileduplicated';
+                            break;
+                    }
+                    
+                    return Core()->redirect($action, 'view', 'webournal', array_merge($paramsForward, array('file' => $id)));
                 }
             }
             catch(Exception $e)
@@ -437,10 +607,14 @@ class webournal_ViewController extends Zend_Controller_Action
         }
         
         $this->view->add_id = $directoryId;
+        $this->view->add_params = $params;
+        $this->view->add_type = $addType;
         $this->view->add_error_upload = $error_upload;
         $this->view->add_error_file_missing = $error_file_missing;
         $this->view->add_error_file_type = $error_file_type;
         $this->view->add_error_unknown = $error_unknown;
+        
+        $this->render('addfile');
     }
     
     public function addfilesettingsAction()
@@ -461,6 +635,39 @@ class webournal_ViewController extends Zend_Controller_Action
         if($file===false)
         {
             return Core()->redirect('index', 'view', 'webournal');
+        }
+        
+        $addType = $this->_request->getParam('addType', 'directory');
+        switch($addType)
+        {
+            case 'attachment':
+                $this->_request->setActionName('addattachmentsettings');
+                
+                $attachedtofileId = $this->_request->getParam('id', null);
+                $attachedtofile = $this->_files->getFileById($attachedtofileId);
+        
+                if($attachedtofile===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+                
+                $params = array(
+                    'id' => $attachedtofileId,
+                    'directory' => $directoryId,
+                    'file' => $uploadId
+                );
+                
+                break;
+            case 'directory':
+            default:
+                $addType = 'directory';
+                
+                $params = array(
+                    'directory' => $directoryId,
+                    'file' => $uploadId
+                );
+                
+                break;
         }
         
         $error_name = false;
@@ -489,17 +696,40 @@ class webournal_ViewController extends Zend_Controller_Action
                 
                 $ignore = ($ignore==='1' ? true : false);
                 
-                $fileId = $this->_files->addFile($file['tmpname'], $directoryId, $name, $number, $description, $ignore);
-                Core()->Upload()->delete($uploadId);
+                switch($addType)
+                {
+                    case 'attachment':
+                        $fileId = $this->_files->addFileAttachment($file['tmpname'], $attachedtofileId, $name, $number, $description, $ignore);
+                        Core()->Upload()->delete($uploadId);
+                        
+                        return Core()->redirect('viewattachments', 'view', 'webournal', array('id' => $attachedtofileId, 'directory' => $directoryId));
+                        break;
+                    case 'directory':
+                    default:
+                        $fileId = $this->_files->addFile($file['tmpname'], $directoryId, $name, $number, $description, $ignore);
+                        Core()->Upload()->delete($uploadId);
+
+                        return Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                        break;
+                }
                 
-                Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
             }
             catch(Exception $e)
             {
                 switch($e->getCode())
                 {
                     case 10:
-                        Core()->redirect('addfileduplicated', 'view', 'webournal', array('directory' => $directoryId, 'file' => $uploadId));
+                        switch($addType)
+                        {
+                            case 'attachment':
+                                $action = 'addattachmentduplicated';
+                                break;
+                            case 'directory':
+                            default:
+                                $action = 'addfileduplicated';
+                                break;
+                        }
+                        Core()->redirect($action, 'view', 'webournal', array('directory' => $directoryId, 'file' => $uploadId));
                         break;
                     case 11:
                         $error_name = true;
@@ -510,6 +740,7 @@ class webournal_ViewController extends Zend_Controller_Action
             }
         }
         
+        $this->view->add_params = $params;
         $this->view->add_directoryId = $directoryId;
         $this->view->add_fileId = $uploadId;
         $this->view->add_ignore = $ignore;
@@ -520,6 +751,8 @@ class webournal_ViewController extends Zend_Controller_Action
         
         $this->view->add_error_name = $error_name;
         $this->view->add_error_unknown = $error_unknown;
+        
+        $this->render('addfilesettings');
     }
     
     public function addfileduplicatedAction()
@@ -539,6 +772,39 @@ class webournal_ViewController extends Zend_Controller_Action
         if($file===false)
         {
             return Core()->redirect('index', 'view', 'webournal');
+        }
+        
+        $addType = $this->_request->getParam('addType', 'directory');
+        switch($addType)
+        {
+            case 'attachment':
+                $this->_request->setActionName('addattachmentduplicated');
+                
+                $attachedtofileId = $this->_request->getParam('id', null);
+                $attachedtofile = $this->_files->getFileById($attachedtofileId);
+        
+                if($attachedtofile===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+                
+                $params = array(
+                    'id' => $attachedtofileId,
+                    'directory' => $directoryId,
+                    'file' => $uploadId
+                );
+                
+                break;
+            case 'directory':
+            default:
+                $addType = 'directory';
+                
+                $params = array(
+                    'directory' => $directoryId,
+                    'file' => $uploadId
+                );
+                
+                break;
         }
         
         $hash = $this->_files->calcHash($file['tmpname']);
@@ -561,38 +827,104 @@ class webournal_ViewController extends Zend_Controller_Action
             {
                 if($use==='new')
                 {
-                    Core()->redirect('addfilesettings', 'view', 'webournal', array('directory' => $directoryId, 'file' => $uploadId, 'ignore' => '1'));
+                    switch($addType)
+                    {
+                        case 'attachment':
+                            $action = 'addattachmentsettings';
+                            break;
+                        case 'directory':
+                        default:
+                            $action = 'addfilesettings';
+                            break;
+                    }
+                    
+                    return Core()->redirect($action, 'view', 'webournal', array_merge($params, array('ignore' => '1')));
                 }
                 else
                 {
-                    $this->_files->addFileToDirectory($use, $directoryId);
-                    Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                    switch($addType)
+                    {
+                        case 'attachment':
+                            /** @todo TODO ;) */
+                            break;
+                        case 'directory':
+                        default:
+                            $this->_files->addFileToDirectory($use, $directoryId);
+                            return Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                            break;
+                    }
                 }
             }
         }
         
+        $this->view->add_params = $params;
         $this->view->add_directoryId = $directoryId;
         $this->view->add_files = $files;
         $this->view->add_fileId = $uploadId;
+        
+        $this->render('addfileduplicated');
     }
-
+    
     public function editfileAction()
     {
-        $directoryId = $this->_request->getParam('directory', null);
-        $fileId = $this->_request->getParam('id', null);
+        $editType = $this->_request->getParam('editType', 'file');
 
-        $directory = $this->_directories->getDirectoryById($directoryId);
-
-        if($directory===false)
+        $editParams = array();
+        switch($editType)
         {
-            return Core()->redirect('index', 'view', 'webournal');
-        }
+            case 'attachment':
+                $directoryId = $this->_request->getParam('directory', null);
+                
+                $this->_request->setActionName('editattachment');
+                $fileId = $this->_request->getParam('attachment', null);
 
-        $file = $this->_files->getFileById($fileId);
+                $file = $this->_files->getFileAttachmentById($fileId);
 
-        if($file===false)
-        {
-            return Core()->redirect('index', 'view', 'webournal');
+                if($file===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $attachedToFileId = $this->_request->getParam('id');
+                $attachedToFile = $this->_files->getFileByIdAndDirectory($attachedToFileId, $directoryId);
+                
+                if($attachedToFile===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $editParams = array(
+                    'directory'     => $directoryId,
+                    'id'            => $attachedToFileId,
+                    'attachment'   => $fileId
+                );
+
+                break;
+            case 'file':
+            default:
+                $fileId = $this->_request->getParam('id', null);
+
+                $file = $this->_files->getFileById($fileId);
+
+                if($file===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $directoryId = $this->_request->getParam('directory', null);
+                $directory = $this->_directories->getDirectoryById($directoryId);
+
+                if($directory===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $editParams = array(
+                    'id'        => $fileId,
+                    'directory' => $directoryId
+                );
+
+                break;
         }
 
         $error_name = false;
@@ -613,9 +945,18 @@ class webournal_ViewController extends Zend_Controller_Action
                 $number = $this->_request->getParam('number', '');
                 $description = $this->_request->getParam('description', '');
 
-                $this->_files->editFile($fileId, $name, $number, $description);
-
-                Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                switch($editType)
+                {
+                    case 'attachment':
+                        $this->_files->editFileAttachment($fileId, $name, $number, $description);
+                        Core()->redirect('viewattachments', 'view', 'webournal', array('id' => $attachedToFileId, 'directory' => $directoryId));
+                        break;
+                    case 'file':
+                    default:
+                        $this->_files->editFile($fileId, $name, $number, $description);
+                        Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                        break;
+                }
             }
             catch(Exception $e)
             {
@@ -631,7 +972,7 @@ class webournal_ViewController extends Zend_Controller_Action
             }
         }
 
-        $this->view->edit_directoryId = $directoryId;
+        $this->view->edit_params = $editParams;
         $this->view->edit_fileId = $fileId;
 
         $this->view->edit_name = $name;
@@ -640,25 +981,74 @@ class webournal_ViewController extends Zend_Controller_Action
 
         $this->view->edit_error_name = $error_name;
         $this->view->edit_error_unknown = $error_unknown;
+
+        $this->render('editfile');
     }
 
     public function removefileAction()
     {
-        $directoryId = $this->_request->getParam('directory', null);
-        $fileId = $this->_request->getParam('id', null);
+        $removeType = $this->_request->getParam('removeType', 'file');
 
-        $directory = $this->_directories->getDirectoryById($directoryId);
-
-        if($directory===false)
+        $removeParams = array();
+        switch($removeType)
         {
-            return Core()->redirect('index', 'view', 'webournal');
-        }
+            case 'attachment':
+                $directoryId = $this->_request->getParam('directory', null);
 
-        $file = $this->_files->getFileById($fileId);
+                $this->_request->setActionName('removeattachment');
+                $fileId = $this->_request->getParam('attachment', null);
 
-        if($file===false)
-        {
-            return Core()->redirect('index', 'view', 'webournal');
+                $file = $this->_files->getFileAttachmentById($fileId);
+
+                if($file===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $attachedToFileId = $this->_request->getParam('id');
+                $attachedToFile = $this->_files->getFileByIdAndDirectory($attachedToFileId, $directoryId);
+
+                if($attachedToFile===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $removeParams = array(
+                    'directory'     => $directoryId,
+                    'id'            => $attachedToFileId,
+                    'attachment'   => $fileId
+                );
+
+                $this->view->remove_attachedToFile = $attachedToFile;
+
+                break;
+            case 'file':
+            default:
+                $directoryId = $this->_request->getParam('directory', null);
+                $fileId = $this->_request->getParam('id', null);
+
+                $directory = $this->_directories->getDirectoryById($directoryId);
+
+                if($directory===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $file = $this->_files->getFileById($fileId);
+
+                if($file===false)
+                {
+                    return Core()->redirect('index', 'view', 'webournal');
+                }
+
+                $removeParams = array(
+                    'id'        => $fileId,
+                    'directory' => $directoryId
+                );
+
+                $this->view->remove_directory = $directory;
+
+                break;
         }
 
         $error_unknown = false;
@@ -669,9 +1059,18 @@ class webournal_ViewController extends Zend_Controller_Action
         {
             try
             {
-                $this->_files->removeFileFromDirectory($fileId, $directoryId);
-
-                Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                switch($removeType)
+                {
+                    case 'attachment':
+                        $this->_files->removeFileAttachment($fileId, $attachedToFileId);
+                        Core()->redirect('viewattachments', 'view', 'webournal', array('directory' => $directoryId, 'id' => $attachedToFileId));
+                        break;
+                    case 'file':
+                    default:
+                        $this->_files->removeFileFromDirectory($fileId, $directoryId);
+                        Core()->redirect('index', 'view', 'webournal', array('id' => $directoryId));
+                        break;
+                }
             }
             catch(Exception $e)
             {
@@ -684,19 +1083,67 @@ class webournal_ViewController extends Zend_Controller_Action
             }
         }
 
-        $this->view->remove_directoryId = $directoryId;
-        $this->view->remove_fileId = $fileId;
+        $this->view->remove_params = $removeParams;
+        $this->view->remove_type = $removeType;
 
         $this->view->remove_file = $file;
-        $this->view->remove_directory = $directory;
 
         $this->view->remove_error_unknown = $error_unknown;
+
+        $this->render('removefile');
+    }
+    
+    public function addattachmentAction()
+    {
+        $this->_request->setParam('addType', 'attachment');
+        $this->_forward('addfile');
+    }
+    
+    public function addattachmentsettingsAction()
+    {
+        $this->_request->setParam('addType', 'attachment');
+        $this->_forward('addfilesettings');
+    }
+    
+    public function addattachmentduplicatedAction()
+    {
+        $this->_request->setParam('addType', 'attachment');
+        $this->_forward('addfileduplicated');
+    }
+    
+    public function editattachmentAction()
+    {
+        $this->_request->setParam('editType', 'attachment');
+        $this->_forward('editfile');
+    }
+
+    public function removeattachmentAction()
+    {
+        $this->_request->setParam('removeType', 'attachment');
+        $this->_forward('removefile');
+    }
+    
+    public function viewattachmentsAction()
+    {
+        $fileId = $this->_request->getParam('id', null);
+        $directoryId = $this->_request->getParam('directory', null);
+
+        $file = $this->_files->getFileByIdAndDirectory($fileId, $directoryId);
+
+        if($file===false)
+        {
+            return Core()->redirect('index', 'view', 'webournal');
+        }
+
+        $this->view->directory_id = $directoryId;
+        $this->view->attachedtofile = $file;
     }
     
     public function viewAction()
     {
         //$this->_response->setHeader('Access-Control-Allow-Origin', '*', true); //https://' . Core()->getMainDomain(), true);
         $fileId = $this->_request->getParam('id', null);
+        $attachmentFileId = $this->_request->getParam('attachment', null);
 
         $file = $this->_files->getFileById($fileId);
 
@@ -704,14 +1151,33 @@ class webournal_ViewController extends Zend_Controller_Action
         {
             return Core()->redirect('index', 'view', 'webournal');
         }
+
+        if(!is_null($attachmentFileId))
+        {
+            $file = $this->_files->getFileAttachmentById($attachmentFileId);
+
+            if($file===false)
+            {
+                return Core()->redirect('index', 'view', 'webournal');
+            }
+
+            $this->view->fileId = $fileId;
+            $this->view->attachementFileId = $attachmentFileId;
+            $this->view->fileType = 'attachment';
+        }
+        else
+        {
+            $this->view->fileId = $fileId;
+            $this->view->fileType = 'file';
+        }
         
         $this->_helper->layout()->disableLayout();
-        $this->view->fileId = $fileId;
     }
     
     public function viewxojAction()
     {
         $fileId = $this->_request->getParam('id', null);
+        $attachmentFileId = $this->_request->getParam('attachment', null);
 
         $file = $this->_files->getFileById($fileId);
 
@@ -719,10 +1185,24 @@ class webournal_ViewController extends Zend_Controller_Action
         {
             return Core()->redirect('index', 'view', 'webournal');
         }
+
+        if(!is_null($attachmentFileId))
+        {
+            $file = $this->_files->getFileAttachmentById($attachmentFileId);
+
+            if($file===false)
+            {
+                return Core()->redirect('index', 'view', 'webournal');
+            }
+
+            $xoj = $this->_xoj->getAttachmentXOJObject($attachmentFileId, Core()->getUserId());
+        }
+        else
+        {
+            $xoj = $this->_xoj->getXOJObject($fileId, Core()->getUserId());
+        }
         
         $type = $this->_request->getParam('type', 'json');
-        
-        $xoj = $this->_xoj->getXOJObject($fileId, Core()->getUserId());
         
         $this->_helper->layout()->disableLayout();
         $this->_helper->viewRenderer->setNoRender(true);
@@ -745,12 +1225,23 @@ class webournal_ViewController extends Zend_Controller_Action
     public function savexojAction()
     {
         $fileId = $this->_request->getParam('id', null);
+        $attachmentFileId = $this->_request->getParam('attachment', null);
 
         $file = $this->_files->getFileById($fileId);
 
         if($file===false)
         {
             die('Access denied');
+        }
+
+        if(!is_null($attachmentFileId))
+        {
+            $file = $this->_files->getFileAttachmentById($attachmentFileId);
+
+            if($file===false)
+            {
+                die('Access denied');
+            }
         }
         
         $data = $this->_request->getParam('data', null);
@@ -779,7 +1270,14 @@ class webournal_ViewController extends Zend_Controller_Action
         
         try
         {
-            $this->_xoj->setLayers($fileId, $data);
+            if(!is_null($attachmentFileId))
+            {
+                $this->_xoj->setAttachmentLayers($attachmentFileId, $data);
+            }
+            else
+            {
+                $this->_xoj->setLayers($fileId, $data);
+            }
             Core()->outputREST(array('saved' => true), true);
         }
         catch(Exception $e)
@@ -803,6 +1301,12 @@ class webournal_ViewController extends Zend_Controller_Action
         }
 
         return self::VERSION;
+    }
+    
+    private static function update2()
+    {
+        Core()->ACL()->addDefaultPermissions('allow', 2, 'webournal_view_viewattachments');
+        Core()->ACL()->addDefaultPermissions('deny', 2, 'webournal_view_viewattachments', 0);
     }
 
     private static function update1()

@@ -1,4 +1,4 @@
-<form action="{$Core->url('addfileduplicated', 'view', 'webournal', ['directory' => $add_directoryId, 'file' => $add_fileId])}" method="post">
+<form action="{$Core->url(null, 'view', 'webournal', $add_params)}" method="post">
     <table class="login ui-widget ui-widget-content">
         <tr>
             <td colspan="2" class="red">Datei bereits im System hinterlegt?</td>

@@ -9,8 +9,13 @@
         <script type="text/javascript" src="/js/jquery.js"></script>
         <script type="text/javascript" src="/js/webournal/view/view.js"></script>
         <script type="text/javascript">
-            var webournal_XOJLoadURL = '{$Core->url('viewxoj', 'view', 'webournal', ['id' =>  $fileId])|escape:"javascript"}';
-            var webournal_XOJSaveURL = '{$Core->url('savexoj', 'view', 'webournal', ['id' =>  $fileId])|escape:"javascript"}';
+            {if $fileType==='file'}
+                var webournal_XOJLoadURL = '{$Core->url('viewxoj', 'view', 'webournal', ['id' =>  $fileId])|escape:"javascript"}';
+                var webournal_XOJSaveURL = '{$Core->url('savexoj', 'view', 'webournal', ['id' =>  $fileId])|escape:"javascript"}';
+            {elseif $fileType==='attachment'}
+                 var webournal_XOJLoadURL = '{$Core->url('viewxoj', 'view', 'webournal', ['id' =>  $fileId, 'attachment' => $attachementFileId])|escape:"javascript"}';
+                var webournal_XOJSaveURL = '{$Core->url('savexoj', 'view', 'webournal', ['id' =>  $fileId, 'attachment' => $attachementFileId])|escape:"javascript"}';
+            {/if}
             var webournal_XOJRestLogin = '{$Core->url('', 'rest_login', 'webournal', null, true)|escape:"javascript"}';
             var webournal_XOJGroup = '{$WEBOURNAL_GROUP|escape:"javascript"}';
             var webournal_XOJDomain = '{$WEBOURNAL_DOMAIN|escape:"javascript"}';

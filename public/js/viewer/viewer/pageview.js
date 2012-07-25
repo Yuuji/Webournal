@@ -43,6 +43,11 @@ var PageView = function pageView(container, content, id, pageWidth, pageHeight,
   
     this.getEditLayer = function getEditLayer(name)
     {
+        if(!this.layerLoaded)
+        {
+            return -2;
+        }
+
         if(this.editLayer == -1)
         {
             var xojEditLayer = this.content.getEditLayer();

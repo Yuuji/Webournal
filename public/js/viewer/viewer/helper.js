@@ -305,6 +305,10 @@ function selectLayer(value)
             if(editLayerId>-1 && editLayerId==id)
             {
                 selectLayerWasEdit = true;
+                if(arguments.length<3 || arguments[2]!=true)
+                {
+                    updateLayerSelect(page, true);
+                }
                 $('#editcontrols').show();
             }
             else
@@ -435,7 +439,7 @@ function updateLayerSelect(page)
 
     select.children('option[value="' + selectValue + '"]').attr('selected', true);
     document.getElementById('pageNumber').value = page;
-    selectLayer(selectValue.toString(), true);
+    selectLayer(selectValue.toString(), true, true);
     
     delete pageView;
     delete select;

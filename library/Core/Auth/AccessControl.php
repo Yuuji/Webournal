@@ -52,9 +52,8 @@ class Core_Auth_AccessControl extends Zend_Controller_Plugin_Abstract
         if (!$this->_auth->hasIdentity() && null !== $request->getPost('login_user') && null !== $request->getPost('login_password'))
         {
             // clear POST data
-            $filter = new Zend_Filter_StripTags();
-            $username = $filter->filter($request->getPost('login_user'));
-            $password = $filter->filter($request->getPost('login_password'));
+            $username = $request->getPost('login_user');
+            $password = $request->getPost('login_password');
             if (empty($username))
             {
                 $error = true;

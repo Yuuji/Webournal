@@ -198,15 +198,15 @@ var XOJView = {
     
     editCallback: function(username)
     {
+        if(typeof username == "string" && username.length>0)
+        {
+            this.editName = username;
+        }
+        
         var layerKey = this.pages[this.page-1].getEditLayer(this.editName);
         
         if(layerKey==-1)
         {
-            if(typeof username == "string" && username.length>0)
-            {
-                this.editName = username;
-            }
-            
             this.editInProcess = true;
             var that = this;
             apprise('Bitte gebe einen Namen ein. Dieser erscheint &ouml;ffentlich f&uuml;r deine Anmerkungen!',
@@ -238,11 +238,19 @@ var XOJView = {
                 }
             );
         }
+        else if(layerKey==-2)
+        {
+            /**
+             *@todo What now?
+             */
+            //updateViewarea(true);
+            //this.editCallback(username);
+        }
         else
         {
             updateLayerSelect(this.page, true);
             $('#layerSelect').children('option[value="' + layerKey + '"]').attr('selected', true);
-            selectLayer(layerKey);
+            selectLayer(layerKey, false, true);
             this.selectEditTool(this.editTool);
             $('button#edit').addClass('selected');
             this.editInProcess = true;
@@ -1348,13 +1356,13 @@ var XOJView = {
             },
             success: function success() {
                 self.loading = true;
-                self.load(scale);
+                self.load(scale, function() {
+                    if(typeof callBack === "function")
+                    {
+                        callBack();
+                    }
+                });
                 self.loading = false;
-                
-                if(typeof callBack === "function")
-                {
-                    callBack();
-                }
             }
         });
     },
@@ -1377,7 +1385,7 @@ var XOJView = {
         {
             var layerKey = this.pages[pagenum].getEditLayer();
             
-            if(layerKey!=-1)
+            if(layerKey!=-1 && layerKey!=-2)
             {
                 var layerKey = this.pages[pagenum].layer[layerKey].layerKey;
                 var layer = this.pages[pagenum].content.layer[layerKey];
@@ -1528,6 +1536,12 @@ var XOJView = {
 
     load: function(scale)
     {
+        var loadCallback = null;
+        if(arguments.length>1)
+        {
+            var loadCallback = arguments[1];
+        }
+
         function bindOnAfterDraw(pageView, thumbnailView)
         {
             // when page is painted, using the image as thumbnail base
@@ -1567,7 +1581,7 @@ var XOJView = {
         document.getElementById('numPages').innerHTML = pagesCount;
         document.getElementById('pageNumber').max = pagesCount;
 
-        var waitFuncCallback = function(self, scale)
+        var waitFuncCallback = function(self, scale, loadCallback)
         {
             var pdfPages = [];
             for (var i = 1; i <= pagesCount; i++)
@@ -1611,10 +1625,15 @@ var XOJView = {
                 {
                     self.page = 1;
                 }
+
+                if(loadCallback)
+                {
+                    loadCallback();
+                }
             });
         }
 
-        var waitFunc = function(callback)
+        var waitFunc = function(callback, loadCallback)
         {
             var pdfsToLoad = 0;
             var finished = false;
@@ -1622,6 +1641,7 @@ var XOJView = {
             var filenames = [];
 
             var callbackFunc = callback;
+            var loadCallbackFunc = loadCallback;
 
             this.add = function(filename)
             {
@@ -1661,22 +1681,22 @@ var XOJView = {
             {
                 if(finished && pdfsToLoad==0)
                 {
-                    callbackFunc(hasError);
+                    callbackFunc(hasError, loadCallbackFunc);
                 }
             }
         }
 
         var self = this;
-        var waitForPDF = new waitFunc(function(hasError) {
+        var waitForPDF = new waitFunc(function(hasError, loadCallback) {
             if(hasError)
             {
                 self.error('An error occurred while reading the PDF.');
             }
             else
             {
-                waitFuncCallback(self, scale);
+                waitFuncCallback(self, scale, loadCallback);
             }
-        });
+        }, loadCallback);
 
         var pages = this.pages = [];
         var pagesRefMap = {};

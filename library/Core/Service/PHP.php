@@ -37,7 +37,35 @@ class Core_Service_PHP
         }
         return $classes;
     }
-    
+
+	public static function getControllerFiles($path)
+	{
+		$return = array();
+		foreach(scandir($path) as $file)
+		{
+			if(substr($file, 0, 1)==='.')
+			{
+				continue;
+			}
+
+			if (strstr($file, "Controller.php") !== false)
+			{
+				$controller = substr($file, 0, strpos($file, "Controller"));
+				$return[] = $controller;
+			}
+			else if(is_dir($path . '/' . $file))
+			{
+				$temp = self::getControllerFiles($path . '/' . $file);
+
+				foreach($temp as $controller)
+				{
+					$return[] = $file . '_' . $controller;
+				}
+			}
+		}	
+
+		return $return;
+	}
     
     /**
      * Returns all controller of project
@@ -50,17 +78,15 @@ class Core_Service_PHP
 
         foreach ($front->getControllerDirectory() as $module => $path)
         {
-            $return[$module] = array();
-            foreach (scandir($path) as $file)
-            {
-                if (strstr($file, "Controller.php") !== false)
-                {
-                    $controller = substr($file, 0, strpos($file, "Controller"));
-                    $return[$module][] = $controller;
-                }
-            }
+
+			$temp = self::getControllerFiles($path);
+			if(count($temp)>0)
+			{
+				$return[$module] = $temp;
+			}
         }
-        return $return;
+        
+		return $return;
     }
     
     
@@ -132,13 +158,26 @@ class Core_Service_PHP
             return array();
         }
 
+		$path2 = str_replace('_', '/', $controller);
+		$pos = strrpos($path2, '/');
+		
+		if($pos!==false)
+		{
+			$path .= '/' . substr($path2, 0, $pos);
+			$filename_controller = substr($path2, $pos+1);
+		}
+		else
+		{
+			$filename_controller = $controller;
+		}
+		
         $return = array();
         foreach (scandir($path) as $file)
         {
             if (strstr($file, "Controller.php") !== false)
             {
                 $file_controller = substr($file, 0, strpos($file, "Controller"));
-                if(strtolower($file_controller)==strtolower($controller))
+                if(strtolower($file_controller)==strtolower($filename_controller))
                 {
                     include_once($path . '/' . $file);
                     if($module==Core()->getDefaultModule())
@@ -166,7 +205,8 @@ class Core_Service_PHP
                 }
             }
         }
-        return $return;
+        
+		return $return;
     }
     
     
@@ -178,7 +218,7 @@ class Core_Service_PHP
      */
     public static function getControllerFilename($module, $controller)
     {
-        $filename = $controller . 'Controller.php';
+        $filename = str_replace('_', DIRECTORY_SEPARATOR, $controller) . 'Controller.php';
 
         return $filename;
     }

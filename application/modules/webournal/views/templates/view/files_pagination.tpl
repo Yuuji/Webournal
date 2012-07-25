@@ -1,6 +1,5 @@
 {function filespagination params=[] files=[]}
 <h2>Dateien</h2>
-{debug}
 <table class="pagination">
 {foreach $files as $fileid}
     {assign var="file" value=webournal_Service_Files::getFileById($fileid['id'])}

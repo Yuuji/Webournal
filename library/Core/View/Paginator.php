@@ -70,6 +70,7 @@ class Core_View_Paginator
         $paginator->setCurrentPageNumber($page);
         
         $paginator->setItemCountPerPage($count);
+        $paginator->setCacheEnabled(false);
         return $paginator;
     }
 }

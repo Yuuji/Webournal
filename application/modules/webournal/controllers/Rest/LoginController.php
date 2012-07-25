@@ -80,7 +80,7 @@ class webournal_Rest_LoginController extends Core_REST_Controller
 
     private static function update1()
     {
-        Core()->ACL()->addDefaultPermissions('allow', 2, 'rest_login');
+        Core()->ACL()->addDefaultPermissions('allow', 3, 'webournal_rest_login');
 
         return true;
     }

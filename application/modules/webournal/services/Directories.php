@@ -45,6 +45,56 @@ class webournal_Service_Directories
         return $directories;
     }
 
+	public static function getYearSpan($groupid=null)
+	{
+        if(is_null($groupid))
+        {
+            $groupid = Core()->getGroupId();
+        }
+
+        $span = Core()->Db()->fetchRow('
+        	SELECT
+            	YEAR(MIN(d.`directory_time`)) as `min`,
+				YEAR(MAX(d.`directory_time`)) as `max`
+            FROM
+            	`webournal_directory` d
+            WHERE
+                d.`group_id` = ? AND
+				d.`directory_time` IS NOT NULL AND
+				d.`directory_time` != 0
+        ', array(
+            $groupid
+        ));
+        
+        return $span;
+	}
+
+    public static function getDirectoriesByMonth($month, $year, $groupid=null)
+    {
+        if(is_null($groupid))
+        {
+            $groupid = Core()->getGroupId();
+        }
+
+        $directories = Core()->Db()->fetchAll('
+        	SELECT
+            	d.*, DAY(d.`directory_time`) as dayofmonth
+            FROM
+            	`webournal_directory` d
+            WHERE
+                d.`group_id` = ? AND
+				MONTH(d.`directory_time`) = ? AND
+				YEAR(d.`directory_time`) = ?
+            ORDER BY d.`directory_time`, d.`name`
+        ', array(
+            $groupid,
+			$month,
+			$year
+        ));
+        
+        return $directories;
+    }
+
     public static function getDirectoryById($directoryId, $groupId=null)
     {
         if(is_null($groupId))

@@ -1,29 +1,15 @@
 <?php
-class webournal_Rest_FileController extends Core_REST_Controller
-{
-    /**
-     *
-     * @var webournal_Service_Directories 
-     */
-    protected $_directories = null;
-    
-    /**
-     *
-     * @var webournal_Service_Files
-     */
-    protected $_files = null;
 
-    public function init()
-    {
-        $this->_directories = new webournal_Service_Directories();
-        $this->_files = new webournal_Service_Files($this->_directories);
-    }
-    
-    public function indexAction()
-    {
-        $this->_forward('get');
-    }
-    
+/**
+ * @TODO Replace with autoloader
+ */
+if(!class_exists('webournal_Rest_FileController'))
+{
+	require_once(dirname(__FILE__) . '/FileController.php');
+}
+
+class webournal_Rest_AttachmentController extends webournal_Rest_FileController
+{
    public function getAction()
     {
         $data = array();
@@ -31,12 +17,19 @@ class webournal_Rest_FileController extends Core_REST_Controller
         $error = null;
         try
         {
-            $id = $this->_request->getParam('id', null);
+            $id = intval($this->_request->getParam('id', null));
 
-            $directory = null;
+            $files = null;
             if(!is_null($id))
             {
-                $files = $this->_files->getFiles($id);
+        		$file = $this->_files->getFileById($id);
+        	
+        		if($file===false)
+        		{
+        	    	throw new Exception('Access denied', 100);
+        		}
+        	
+                $files = $this->_files->getFileAttachments($id);
 
                 if($files===false)
                 {
@@ -64,8 +57,8 @@ class webournal_Rest_FileController extends Core_REST_Controller
         
         try
         {
-            $uploadId = $this->_request->getParam('file', null);
-            $directoryId = $this->_request->getParam('directory', null);
+            $uploadId = intval($this->_request->getParam('file', null));
+            $attachToFileId = intval($this->_request->getParam('attachtofile', null));
             $ignore = $this->_request->getParam('ignore', false);
             
             if($ignore==='true' || $ignore==='1' || $ignore===1 || $ignore===true)
@@ -77,14 +70,14 @@ class webournal_Rest_FileController extends Core_REST_Controller
                 $ignore = false;
             }
             
-            if(is_null($directoryId))
+            if(is_null($attachToFileId))
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $directory = $this->_directories->getDirectoryById($directoryId);
+            $file = $this->_files->getFileById($attachToFileId);
 
-            if($directory===false)
+            if($file===false)
             {
                 throw new Exception('Access denied', 100);
             }
@@ -110,7 +103,7 @@ class webournal_Rest_FileController extends Core_REST_Controller
                 $number = $this->_request->getParam('number', '');
                 $description = $this->_request->getParam('description', '');
                 
-                $fileId = $this->_files->addFile($file['tmpname'], $directoryId, $name, $number, $description, $ignore);
+                $fileId = $this->_files->addFileAttachment($file['tmpname'], $attachToFileId, $name, $number, $description, $ignore);
                 Core()->Upload()->delete($uploadId);
                 
                 $data = array(
@@ -159,35 +152,35 @@ class webournal_Rest_FileController extends Core_REST_Controller
         
         try
         {
-            $fileId = $this->_request->getParam('id', null);
+            $fileId = intval($this->_request->getParam('id', null));
             
             if(is_null($fileId))
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $file = $this->_files->getFileById($fileId);
+            $file = $this->_files->getFileAttachmentById($fileId);
             
             if($file===false)
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $directoryId = $this->_request->getParam('directory', null);
+            $attachedToFileId = intval($this->_request->getParam('attachedtofile', null));
             
-            if(is_null($directoryId))
+            if(is_null($attachedToFileId))
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $directory = $this->_directories->getDirectoryById($directoryId);
+            $attachedToFile = $this->_files->getFileById($attachedToFileId);
 
-            if($directory===false)
+            if($attachedToFile===false)
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $this->_files->removeFileFromDirectory($fileId, $directoryId);
+            $this->_files->removeFileAttachement($fileId, $attachedToFileId);
         }
         catch(Exception $e)
         {
@@ -206,14 +199,14 @@ class webournal_Rest_FileController extends Core_REST_Controller
         
         try
         {
-            $fileId = $this->_request->getParam('id', null);
+            $fileId = intval($this->_request->getParam('id', null));
             
             if(is_null($fileId))
             {
                 throw new Exception('Access denied', 100);
             }
             
-            $file = $this->_files->getFileById($fileId);
+            $file = $this->_files->getFileAttachementById($fileId);
             
             if($file===false)
             {
@@ -239,21 +232,21 @@ class webournal_Rest_FileController extends Core_REST_Controller
                 $description = $file['description'];
             }
             
-            $directoryId = $this->_request->getParam('directory', null);
+            $attachToFileId = intval($this->_request->getParam('attachtofile', null));
             
-            if(!is_null($directoryId))
+            if(!is_null($attachToFileId))
             {
-                $directory = $this->_directories->getDirectoryById($directoryId);
+                $attachToFile = $this->_files->getFileById($attachToFileId);
 
-                if($directory===false)
+                if($attachToFile===false)
                 {
                     throw new Exception('Access denied', 100);
                 }
                 
-                $this->_files->addFileToDirectory($fileId, $directoryId);
+                $this->_files->addFileToAttachment($fileId, $attachToFileId);
             }
             
-            $this->_files->editFile($fileId, $name, $number, $description);
+            $this->_files->editFileAttachment($fileId, $name, $number, $description);
         }
         catch(Exception $e)
         {

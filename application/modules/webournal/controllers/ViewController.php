@@ -1214,6 +1214,7 @@ class webournal_ViewController extends Zend_Controller_Action
                     ->setHeader('Content-Disposition', 'attachment; filename=' . $file['name'] . '.xoj')
                     ->setHeader('Content-type', 'application/xoj');
                 $this->view->xoj = $xoj;
+				$this->view->publicPath = Core()->getPublicUploadPath();
                 echo gzencode($this->view->render('view/viewxoj.tpl'));
                 break;
             case 'json':

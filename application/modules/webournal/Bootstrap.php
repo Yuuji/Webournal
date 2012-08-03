@@ -29,7 +29,7 @@ class webournal_Bootstrap extends Zend_Application_Module_Bootstrap
     {
         $front     = Zend_Controller_Front::getInstance();
         $restRoute = new Zend_Rest_Route($front, array(), array(
-            'webournal' => array('rest_login', 'rest_directory', 'rest_upload', 'rest_file')
+            'webournal' => array('rest_login', 'rest_directory', 'rest_upload', 'rest_file', 'rest_attachment')
         ));
         $front->getRouter()->addRoute('webournal_rest', $restRoute);
         

@@ -1,0 +1,27 @@
+table.calendar {
+	border-spacing: 0px !important;
+}
+
+table.calendar tr.header {
+	background-color: #DDDDDD;
+}
+
+table.calendar tr.even {
+	background-color: #EEEEEE;
+}
+
+table.calendar tr.day7 {
+	background-color: #D7D7D7 !important;
+}
+
+table.calendar tr td.dayname {
+	width: 40px;
+}
+
+table.calendar tr td.day {
+	width: 100px;
+}
+
+table.calendar tr td.time {
+	width: 50px;
+}

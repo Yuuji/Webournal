@@ -843,7 +843,7 @@ class webournal_Service_XOJ
                 $height = $page->getHeight();
                 
                 $ref = $page->getPageDictionary();
-                if($ref->Rotate->value==90 || $ref->Rotate->value==270)
+                if($ref && $ref->Rotate && ($ref->Rotate->value==90 || $ref->Rotate->value==270))
                 {
                     $tmp = $width;
                     $width = $height;

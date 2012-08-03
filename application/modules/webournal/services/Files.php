@@ -374,8 +374,8 @@ class webournal_Service_Files
         }
         catch(Exception $e)
         {
-            if($e->getMessage()=== 'Cross-reference streams are not supported yet.')
-            {
+            //if($e->getMessage()=== 'Cross-reference streams are not supported yet.')
+            //{
                 try
                 {
                     // version > 1.4
@@ -393,11 +393,11 @@ class webournal_Service_Files
                 {
                     throw new Exception('Not a PDF file', 30);
                 }
-            }
-            else
-            {
-                throw new Exception('Not a PDF file', 30);
-            }
+            //}
+            //else
+            //{
+            //    throw new Exception('Not a PDF file', 30);
+            //}
         }
         
         $hash = self::calcHash($filename);
@@ -419,7 +419,7 @@ class webournal_Service_Files
     
     public static function addFileAttachment($filename, $attachToFile, $name, $number='', $description='', $ignoreHash = false, $groupId = null)
     {
-        self::addFile($filename, $attachToFile, $name, $number, $description, $ignoreHash, $groupId, 'attachment');
+        return self::addFile($filename, $attachToFile, $name, $number, $description, $ignoreHash, $groupId, 'attachment');
     }
     
     public static function addFile($filename, $directory, $name, $number='', $description='', $ignoreHash = false, $groupId = null, $addType = 'file')
@@ -559,6 +559,30 @@ class webournal_Service_Files
         ));
     }
     
+    public static function addFileToAttachment($fileId, $attachToFileId, $groupId = null)
+    {
+        if(is_null($groupId))
+        {
+            $groupId = Core()->getGroupId();
+        }
+        
+        $attachToFile = self::getFileById($attachToFileId, $groupId);
+        
+        if($attachToFile===false)
+        {
+            throw new Exception('Access denied', 99);
+        }
+        
+        $file = self::getFileAttachmentById($fileId, $groupId);
+        
+        if($file===false)
+        {
+            throw new Exception('Access denied', 99);
+        }
+        
+        self::addFileToAttachmentIntern($fileId, $attachToFileId);
+    }
+
     private static function addFileToAttachmentIntern($fileId, $attachToFile)
     {
         Core()->Db()->query('

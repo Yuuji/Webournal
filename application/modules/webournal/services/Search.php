@@ -17,6 +17,7 @@ class webournal_Service_Search extends Core_View_Paginator
         }
 
         $select = Core()->Db()->select()->from(array('ws' => 'webournal_search'));
+        $select->joinInner(array('wf' => 'webournal_files'), 'wf.id=ws.id', '');
 
         if($group_id!==false && $group_id>0)
         {

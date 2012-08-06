@@ -36,12 +36,12 @@
 			<td class="day">{$daytime|date_format:"%d"}</td>
 			<td class="name">
 				{foreach $day as $date}
-					<a href="{$Core->url('index', 'view', 'webournal', ['id' => $date.id])}">{$date.name|escape:"htmlall"}</a>{if !$day@last}<br />{/if}
+					<a href="{$Core->url('index', 'view', 'webournal', ['id' => $date.id])}">{$date.name|escape:"htmlall"}</a>{if !$date@last}<br />{/if}
 				{/foreach}
 			</td>
 			<td class="time">
 				{foreach $day as $date}
-					{$date.directory_time|date_format:"%H:%M"}{if !$day@last}<br />{/if}
+					{$date.directory_time|date_format:"%H:%M"}{if !$date@last}<br />{/if}
 				{/foreach}
 			</td>
 		</tr>

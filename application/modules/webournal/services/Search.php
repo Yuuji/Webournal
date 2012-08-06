@@ -23,7 +23,7 @@ class webournal_Service_Search extends Core_View_Paginator
         {
             $select->where('ws.groupid = ?', $group_id);
         }
-        $select->where('ws.query = ?', $this->escapeSphinxQL($search));
+        $select->where('ws.query = ?', $this->escapeSphinxQL($search) . ';limit=1000;maxmatches=1000');
 
         return $select;
     }

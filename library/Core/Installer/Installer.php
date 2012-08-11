@@ -201,6 +201,21 @@ class Core_Installer_Installer
         }
         
         $serviceArray = Core()->PHP()->getServices();
+
+        reset($applications);
+        foreach($applications as $row)
+        {
+            if($row['module'] != 'application' && substr($row['controller'],0,8) === 'service_')
+            {
+				$controller = substr($row['controller'], 8);
+                $key = array_search($controller, $serviceArray[$row['module']]);
+                
+                if($key!==false)
+                {
+                    unset($serviceArray[$row['module']][$key]);
+                }
+            }
+        }
         
         reset($serviceArray);
         foreach($serviceArray as $module => $services)

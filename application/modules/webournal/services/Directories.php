@@ -1,7 +1,7 @@
 <?php
 class webournal_Service_Directories
 {
-    const VERSION = 2;
+    const VERSION = 3;
     
     public static function getDirectories($parent=null, $groupid=null)
     {
@@ -132,19 +132,149 @@ class webournal_Service_Directories
         }
     }
 
-    public function addDirectory($name, $type, $description = '', $date = '', $parent = null, $groupid = null)
-    {
-        $this->checkValues($name, $type, $date);
-        
-        if(is_null($groupid))
-        {
-            $groupid = Core()->getGroupId();
-        }
+	private static function addRootNode($group_id, $name)
+	{
+		$check = Core()->Db()->fetchOne('
+			SELECT
+				`id`
+			FROM
+				`webournal_directory`
+			WHERE
+				`lft` = 1 AND
+				`group_id` = ?
+		', array($group_id));
+
+		if($check===false)
+		{
+			Core()->Db()->query('
+				INSERT INTO
+					`webournal_directory`
+				SET
+					`name` = ?,
+					`type` = "directory",
+					`lft` = 1,
+					`rgt` = 2,
+					`group_id` = ?
+			', array(
+				$name,
+				$group_id
+			));
+		}
+	}
+
+	private static function editRootNode($group_id, $name)
+	{
+		Core()->Db->query('
+			UPDATE
+				`webournal_directory`
+			SET
+				`name` = ?
+			WHERE
+				`group_id` = ? AND
+				`ltf` = 1
+		', array(
+			$name,
+			$group_id
+		));
+	}
+
+	private static function removeRootNode($group_id)
+	{
+		Core()->Db()->query('
+			DELETE FROM
+				`webournal_directory`
+			WHERE
+				`group_id` = ?
+		', array(
+			$group_id
+		));
+	}
+
+	/**
+	 * Adds a node to nested tree
+	 *
+	 * @param int|null $parent Parent node
+	 * @param int $group_id ACL group id
+	 * @param string $name Name
+	 * @param string $type Type
+	 * @param string $directory_time Directory time
+	 * @param string $description Description
+	 * @param int|null $id DON'T SET THIS! ONLY FOR MIGRATION!
+	 * @param string|null $created DON'T SET THIS! ONLY FOR MIGRATION!
+	 * @return int ID of new node
+	 */
+	private static function addNode($parent, $group_id, $name, $type, $directory_time, $description, $id=null, $created=null)
+	{
+		if(is_null($parent))
+		{
+			$parentNode = Core()->Db()->fetchRow('
+				SELECT
+					`lft`, `rgt`
+				FROM
+					`webournal_directory`
+				WHERE
+					`lft` = 1 AND
+					`group_id` = ?
+			', array(
+				$group_id
+			));
+		}
+		else
+		{
+			$parentNode = Core()->Db()->fetchRow('
+				SELECT
+					`lft`, `rgt`
+				FROM
+					`webournal_directory`
+				WHERE
+					`id` = ? AND
+					`group_id` = ?
+			', array(
+				$parent,
+				$group_id
+			));
+		}
+
+		if(!is_array($parentNode) || !isset($parentNode['rgt']))
+		{
+			throw new Exception('Parent id is not correct', 1);
+		}
+
+		$RGT = $parentNode['rgt'];
+		$LFT = $parentNode['lft'];
+
+		Core()->Db()->query('
+			UPDATE
+				`webournal_directory`
+			SET
+				`rgt`=`rgt` + 2
+			WHERE
+				`rgt` >= ? AND
+				`group_id` = ?
+		', array(
+			$RGT,
+			$group_id
+		));
+
+		Core()->Db()->query('
+			UPDATE
+				`webournal_directory`
+			SET
+				`lft`=`lft` + 2
+			WHERE
+				`lft` > ? AND
+				`group_id` = ?
+		', array(
+			$RGT,
+			$group_id
+		));
 
         $sql = '
             INSERT INTO
                 `webournal_directory`
             SET
+				`lft` = ?,
+				`rgt` = ?,
                 `name` = ?,
                 `type` = ?,
                 `description` = ?,
@@ -153,11 +283,13 @@ class webournal_Service_Directories
                 `parent` = ';
 
         $values = array(
+			$RGT,
+			$RGT+1,
             $name,
             $type,
             $description,
-            $date,
-            $groupid
+            $directory_time,
+            $group_id
         );
 
         if(is_null($parent))
@@ -166,20 +298,30 @@ class webournal_Service_Directories
         }
         else
         {
-            $check = $this->getDirectoryById($parent, $groupid);
-
-            if($check===false)
-            {
-                throw new Exception('Parent id not correct', 1);
-            }
-
             $sql .= '?';
             $values[] = $parent;
         }
 
+		if(!is_null($id))
+		{
+			$sql .= ',
+				`id` = ?';
+			$values[] = $id;
+		}
+
+		if(!is_null($created))
+		{
+			$sql .= ',
+				`created` = ?';
+			$values[] = $created;
+		}
+
         Core()->Db()->query($sql, $values);
 
-        $id = Core()->Db()->lastInsertId('webournal_directory');
+		if(!is_null($id))
+		{
+        	$id = Core()->Db()->lastInsertId('webournal_directory');
+		}
 
         if(!is_numeric($id))
         {
@@ -187,6 +329,80 @@ class webournal_Service_Directories
         }
 
         return (int)$id;
+	}
+
+	private function removeNode($id, $group_id)
+	{
+		$node = Core()->Db()->fetchRow('
+			SELECT
+				`lft`, `rgt`
+			FROM
+				`webournal_directory`
+			WHERE
+				`id` = ? AND
+				`group_id` = ?
+		', array(
+			$id,
+			$group_id
+		));
+
+		if(!is_array($node) || !isset($node['rgt']))
+		{
+			throw new Exception('id is not correct', 1);
+		}
+
+		$LFT = $node['lft'];
+		$RGT = $node['rgt'];
+
+		Core()->Db()->query('
+			DELETE FROM
+				`webournal_directory`
+			WHERE
+				`group_id` = ? AND
+				`lft` BETWEEN ? AND ?
+		', array(
+			$group_id,
+			$LFT,
+			$RGT
+		));
+
+		Core()->Db()->query('
+			UPDATE
+				`webournal_directory`
+			SET
+				`lft` = `lft` - ROUND((?-?+1))
+			WHERE
+				`lft` > ?
+		', array(
+			$RGT,
+			$LFT,
+			$RGT
+		));
+
+		Core()->Db()->query('
+			UPDATE
+				`webournal_directory`
+			SET
+				`rgt` = `rgt` - ROUND((?-?+1))
+			WHERE
+				`rgt` > ?
+		', array(
+			$RGT,
+			$LFT,
+			$RGT
+		));
+	}
+
+    public function addDirectory($name, $type, $description = '', $date = '', $parent = null, $groupid = null)
+    {
+        $this->checkValues($name, $type, $date);
+        
+        if(is_null($groupid))
+        {
+            $groupid = Core()->getGroupId();
+        }
+		
+		return self::addNode($parent, $groupid, $name, $type, $date, $description);
     }
     
     public function editDirectory($id, $name, $type, $description = '', $date = '', $groupid = null)
@@ -232,6 +448,16 @@ class webournal_Service_Directories
         
         return true;
     }
+
+	public static function addGroupEvent($id, $url, $name, $adminemail, $description)
+	{
+		self::addRootNode($id, $name);
+	}
+
+	public static function editGroupEvent($id, $name, $description)
+	{
+		self::editRootNode($id, $name);
+	}
     
     public static function removeGroupEvent($id)
     {
@@ -249,6 +475,8 @@ class webournal_Service_Directories
                 return false;
             }
         }
+
+		self::removeRootNode($id);
         
         return true;
     }
@@ -295,17 +523,8 @@ class webournal_Service_Directories
             {
                 throw new Exception('Could not remove directory, sub remove failed', 98);
             }
-            
-            Core()->Db()->query('
-                DELETE FROM
-                    `webournal_directory`
-                WHERE
-                    `id` = ? AND
-                    `group_id` = ?
-            ', array(
-                $id,
-                $groupid
-            ));
+
+			self::removeNode($id, $group_id);
         }
         catch(Exception $e)
         {
@@ -336,6 +555,113 @@ class webournal_Service_Directories
 
         return self::VERSION;
     }
+
+	private static function migrateToNested($group_id, $parent=null)
+	{
+		if(is_null($parent))
+		{
+			$dirs = Core()->Db()->fetchAll('
+				SELECT
+					*
+				FROM
+					`webournal_directory_update`
+				WHERE
+					`group_id` = ? AND
+					`parent` IS NULL
+			',array(
+				$group_id
+			));
+		}
+		else
+		{
+			$dirs = Core()->Db()->fetchAll('
+				SELECT
+					*
+				FROM
+					`webournal_directory_update`
+				WHERE
+					`group_id` = ? AND
+					`parent` = ? 
+			',array(
+				$group_id,
+				$parent
+			));
+		}
+
+		foreach($dirs as $dir)
+		{
+			self::addNode($parent, $group_id, $dir['name'], $dir['type'], $dir['directory_time'], $dir['description'], $dir['id'], $dir['created']);
+
+			self::migrateToNested($group_id, $dir['id']);
+
+			Core()->Db()->query('
+				DELETE FROM
+					`webournal_directory_update`
+				WHERE
+					`id` = ?
+			', array(
+				$dir['id']
+			));
+		}
+	}
+
+	private static function update3()
+	{
+		// We want to move to nested set
+		// We keep parent id till we are sure the new system works
+
+		$ai = Core()->Db()->fetchRow('SHOW TABLE STATUS WHERE `Name` = "webournal_directory"');
+		$ai = $ai['Auto_increment'];
+
+		Core()->Db()->query('RENAME TABLE `webournal_directory` TO `webournal_directory_update`;');
+        Core()->Db()->query('
+            CREATE TABLE IF NOT EXISTS `webournal_directory` (
+              `id` int(12) NOT NULL auto_increment,
+              `group_id` int(11) NOT NULL,
+              `parent` INT(12) NULL,
+			  `lft` INT(12) NULL,
+			  `rgt` INT(12) NULL,
+              `name` varchar(100) NOT NULL,
+              `type` enum("directory","date") NOT NULL,
+              `directory_time` timestamp NULL default NULL,
+              `description` varchar(500) NOT NULL,
+              `created` timestamp NOT NULL default CURRENT_TIMESTAMP,
+              PRIMARY KEY  (`id`),
+			  KEY lft (`lft`),
+			  KEY rgt (`rgt`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=' . intval($ai) . ';
+        ', array());
+
+		// Now do magic
+		$groups = Core()->Db()->fetchAll('
+			SELECT
+				`id`, `name`
+			FROM
+				`acl_groups`
+		');
+
+		foreach($groups as $group)
+		{
+			self::addRootNode($group['id'], $group['name']);
+			self::migrateToNested($group['id'], null);
+		}
+
+		Core()->Db()->query('DROP TABLE `webournal_directory_update`');
+
+        Core()->Events()->addSubscription(
+            'core_Service_Groups_addGroup',
+            'webournal_Service_Directories',
+            'addGroupEvent'
+        );
+        
+		Core()->Events()->addSubscription(
+            'core_Service_Groups_editGroup',
+            'webournal_Service_Directories',
+            'editGroupEvent'
+        );
+
+		return true;
+	}
     
     private static function update2()
     {

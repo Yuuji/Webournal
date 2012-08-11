@@ -27,6 +27,7 @@ class Core_Installer_Updater
         reset($applications);
         foreach($applications as $row)
         {
+			Core()->Db()->beginTransaction();
             if($row['module']=='application')
             {
                 self::checkMain($row['controller'], $row['version']);
@@ -35,6 +36,7 @@ class Core_Installer_Updater
             {
                 self::checkController($row['module'], $row['controller'], $row['version'], $row['filetime']);
             }
+			Core()->Db()->commit();
         }
     }
 
@@ -104,7 +106,6 @@ class Core_Installer_Updater
             {
                 $newVersion = $version;
             }
-            
             self::updateVersion($module, $controller, $newVersion, $lastchange);
         }
     }

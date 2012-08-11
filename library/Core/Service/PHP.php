@@ -109,6 +109,10 @@ class Core_Service_PHP
             $return[$module] = array();
             foreach (scandir($path) as $file)
             {
+				if(substr($file, 0, 1)==='.')
+				{
+					continue;
+				}
                 if (strstr($file, ".php") !== false)
                 {
                     $service = substr($file, 0, strpos($file, ".php"));
